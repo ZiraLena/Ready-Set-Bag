@@ -280,19 +280,72 @@ body.admin-mode .icon-wrench {
 /* Desktop / large laptop */
 /* Desktop Large (1280px - 1439px) */
 @media (min-width: 1280px) and (max-width: 1439px) {
+  body {
+    overflow: hidden;
+  }
+
   .left-panel {
-    width: clamp(520px, 46%, 770px);
-    max-height: calc(100vh - 120px);
-    height: auto;
-    overflow-y: auto;
-    padding: 80px 48px;
+    width: clamp(500px, 44%, 720px);
+    height: 86%;
+    max-height: none;
+    overflow: hidden;
+    padding: 72px 44px;
+  }
+
+  .login-title {
+    font-size: clamp(90px, 8vw, 132px);
+    margin-bottom: 32px;
+  }
+
+  .input-group {
+    margin-bottom: 20px;
+  }
+
+  .input-icon {
+    width: 60px;
+    height: 60px;
+    overflow: hidden;
+  }
+
+  .input-icon img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .user-img {
+    transform: translateY(2px);
+  }
+
+  .input-group input {
+    font-size: 24px;
+    padding: 16px 20px 16px 82px;
+  }
+
+  .btn-login-index {
+    font-size: 44px;
+    padding: 8px 64px;
+    margin-top: 12px;
+  }
+
+  .toggle-row {
+    margin-top: 24px;
+  }
+
+  .toggle-label {
+    font-size: 20px;
   }
 
   .panel-icon {
-    width: min(480px, 48%);
-    max-width: 480px;
-    max-height: calc(100vh - 160px);
+    width: min(430px, 45%);
+    max-width: 430px;
+    max-height: none;
     height: auto;
+  }
+
+  .icon-pencil,
+  .icon-wrench {
+    width: 160px;
+    height: 500px;
   }
 }
 

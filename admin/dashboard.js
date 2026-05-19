@@ -5,6 +5,8 @@
 // Global variable to track Firestore listener
 let teachersListener = null;
 let adminRecentActivityListener = null;
+let adminStudentEditId = null;
+let adminStudentModalMode = 'create';
 
 // Store admin credentials for re-authentication after creating users
 let adminCredentials = {
@@ -80,8 +82,7 @@ function navigate(page, btn) {
     home: 'ADMIN DASHBOARD', 
     teachers: 'ADMIN DASHBOARD', 
     students: 'ADMIN DASHBOARD',
-    reports: 'ADMIN DASHBOARD', 
-    settings: 'ADMIN DASHBOARD' 
+    reports: 'ADMIN DASHBOARD'
   };
   document.getElementById('topbar-title').textContent = titles[page] || 'ADMIN DASHBOARD';
   
@@ -595,8 +596,9 @@ let adminCsvData = [];
 let sectionTeacherMap = {}; // section -> teacherId
 
 // ---- OPEN/CLOSE STUDENT MODAL ----
-function openStudentModal(tab) {
+async function openStudentModal(tab) {
   document.getElementById('student-modal-overlay').classList.add('open');
+  adminStudentEditId = null;
   // Reset forms
   document.getElementById('s-input-first').value = '';
   document.getElementById('s-input-last').value = '';
@@ -604,9 +606,46 @@ function openStudentModal(tab) {
   document.getElementById('s-csv-preview').style.display = 'none';
   document.getElementById('s-import-btn').disabled = true;
   adminCsvData = [];
+  setStudentModalMode('create');
   // Populate section dropdowns from Firestore teachers
-  populateSectionDropdowns();
+  await populateSectionDropdowns();
   switchStudentTab(tab || 'single');
+}
+
+function setStudentModalMode(mode) {
+  adminStudentModalMode = mode;
+
+  const tabs = document.getElementById('student-modal-tabs');
+  const csvForm = document.getElementById('student-csv-form');
+  const singleForm = document.getElementById('student-single-form');
+  const title = document.getElementById('student-modal-title');
+  const submitBtn = document.getElementById('s-single-submit-btn');
+  const sectionSelect = document.getElementById('s-input-section');
+  const addSectionBtn = document.querySelector('#student-single-form .btn-add');
+  const formNote = document.getElementById('s-form-note');
+
+  if (!tabs || !csvForm || !singleForm || !title || !submitBtn || !sectionSelect) return;
+
+  if (mode === 'edit') {
+    tabs.style.display = 'none';
+    csvForm.style.display = 'none';
+    singleForm.style.display = '';
+    title.textContent = 'EDIT STUDENT';
+    submitBtn.textContent = 'UPDATE STUDENT';
+    submitBtn.onclick = updateAdminStudent;
+    sectionSelect.disabled = true;
+    if (addSectionBtn) addSectionBtn.disabled = true;
+    if (formNote) formNote.innerHTML = 'Editing student details. Login credentials stay the same.';
+    return;
+  }
+
+  tabs.style.display = '';
+  title.textContent = 'ADD NEW STUDENT';
+  submitBtn.textContent = 'CREATE STUDENT';
+  submitBtn.onclick = addSingleStudent;
+  sectionSelect.disabled = false;
+  if (addSectionBtn) addSectionBtn.disabled = false;
+  if (formNote) formNote.innerHTML = '&#9888; Default password is Student@123. Username will be auto-generated.';
 }
 
 function closeStudentModal() {
@@ -618,10 +657,36 @@ function closeStudentModalOutside(e) {
 }
 
 function switchStudentTab(tab) {
+  if (adminStudentModalMode === 'edit') tab = 'single';
   document.getElementById('student-single-form').style.display = tab === 'single' ? '' : 'none';
   document.getElementById('student-csv-form').style.display = tab === 'csv' ? '' : 'none';
   document.getElementById('stab-single').classList.toggle('active', tab === 'single');
   document.getElementById('stab-csv').classList.toggle('active', tab === 'csv');
+}
+
+async function openEditStudentModal(btn) {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+
+  const row = btn.closest('tr');
+  const studentId = row.getAttribute('data-student-id');
+
+  try {
+    const studentData = await getDocumentData('students', studentId);
+    await openStudentModal('single');
+    adminStudentEditId = studentId;
+    setStudentModalMode('edit');
+
+    const fullName = (studentData.displayName || '').trim();
+    const nameParts = fullName ? fullName.split(/\s+/) : [];
+    const firstName = studentData.firstName || nameParts.shift() || '';
+    const lastName = studentData.lastName || nameParts.join(' ') || '';
+
+    document.getElementById('s-input-first').value = firstName;
+    document.getElementById('s-input-last').value = lastName;
+    document.getElementById('s-input-section').value = studentData.section || '';
+  } catch (err) {
+    showToast('Error loading student: ' + err.message, 'error');
+  }
 }
 
 // ---- POPULATE SECTION DROPDOWNS FROM TEACHERS ----
@@ -845,7 +910,7 @@ async function importAdminStudentsFromCSV() {
           <td>${section}</td>
           <td class="td-pass">••••••••</td>
           <td class="td-actions">
-            <button class="btn-sm btn-reset" onclick="resetAdminStudentPassword(this)">↺ RESET</button>
+            <button class="btn-sm btn-edit" onclick="openEditStudentModal(this)">✏ EDIT</button>
             <button class="btn-sm btn-delete" onclick="deleteAdminStudent(this)">🗑 DELETE</button>
           </td>`;
         tbody.appendChild(row);
@@ -981,7 +1046,7 @@ function loadAdminStudentsFromFirebase() {
           <td>${s.section}</td>
           <td class="td-pass">••••••••</td>
           <td class="td-actions">
-            <button class="btn-sm btn-reset" onclick="resetAdminStudentPassword(this)">↺ RESET</button>
+            <button class="btn-sm btn-edit" onclick="openEditStudentModal(this)">✏ EDIT</button>
             <button class="btn-sm btn-delete" onclick="deleteAdminStudent(this)">🗑 DELETE</button>
           </td>`;
         tbody.appendChild(row);
@@ -1017,6 +1082,43 @@ async function resetAdminStudentPassword(btn) {
       await window.db.collection('students').doc(id).update({ password: 'Student@123', updatedAt: new Date() });
       showToast(`Password reset for ${name}.`);
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+}
+
+async function updateAdminStudent() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  if (!adminStudentEditId) { showToast('No student selected.', 'error'); return; }
+
+  clearFieldHighlights();
+
+  const first = document.getElementById('s-input-first').value.trim();
+  const last = document.getElementById('s-input-last').value.trim();
+
+  const emptyFields = [];
+  if (!first) emptyFields.push('s-input-first');
+  if (!last) emptyFields.push('s-input-last');
+
+  if (emptyFields.length > 0) {
+    highlightFields(emptyFields);
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  try {
+    const studentData = await getDocumentData('students', adminStudentEditId);
+    await window.db.collection('students').doc(adminStudentEditId).update({
+      firstName: first,
+      lastName: last,
+      displayName: `${first} ${last}`,
+      updatedAt: new Date()
+    });
+
+    adminStudentEditId = null;
+    setStudentModalMode('create');
+    closeStudentModal();
+    showToast(`${studentData.displayName || 'Student'} updated successfully!`);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
