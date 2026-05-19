@@ -278,20 +278,27 @@ body.admin-mode .icon-wrench {
 /* ---- RESPONSIVE BREAKPOINTS ---- */
 
 /* Desktop / large laptop */
-@media (min-width: 1280px) {
+/* Desktop Large (1280px - 1439px) */
+@media (min-width: 1280px) and (max-width: 1439px) {
   .left-panel {
-    width: 770px;
-    height: 970px;
+    width: clamp(520px, 46%, 770px);
+    max-height: calc(100vh - 120px);
+    height: auto;
+    overflow-y: auto;
+    padding: 80px 48px;
   }
 
   .panel-icon {
-    width: 480px;
-    height: 920px;
+    width: min(480px, 48%);
+    max-width: 480px;
+    max-height: calc(100vh - 160px);
+    height: auto;
   }
 }
 
 /* Laptop / small PC */
-@media (min-width: 769px) and (max-width: 1279px) {
+/* Laptop (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
   .login-title {
     font-size: clamp(84px, 9vw, 120px);
     margin-bottom: 28px;
@@ -353,8 +360,33 @@ body.admin-mode .icon-wrench {
   }
 }
 
+/* Desktop (1024px - 1279px) - match dashboard scaling for mid-desktop sizes */
+/* Desktop (1025px - 1279px) */
+@media (min-width: 1025px) and (max-width: 1279px) {
+  .login-title {
+    font-size: clamp(76px, 8.5vw, 104px);
+    margin-bottom: 26px;
+  }
+
+  .left-panel {
+    width: 84%;
+    height: 86%;
+    padding: 100px 48px;
+    border-radius: 48px;
+  }
+
+  .input-icon { width: 52px; height: 52px; }
+  .input-icon img { width: 26px !important; height: 26px !important; }
+  .input-group input { font-size: 16px; padding: 12px 14px 12px 72px; }
+
+  .btn-login-index { font-size: 34px; padding: 8px 56px; }
+
+  .panel-icon { width: 380px; height: 720px; }
+  .icon-pencil, .icon-wrench { width: 120px; height: 520px; }
+}
+
 /* Tablet */
-@media (min-width: 481px) and (max-width: 850px) {
+@media (min-width: 426px) and (max-width: 768px) {
   body {
     overflow: auto;
     min-height: 100dvh;
@@ -446,8 +478,8 @@ body.admin-mode .icon-wrench {
 }
 
 /* Tablet landscape: keep right-panel icon anchored to bottom to match smartphone layout
-   extend to larger tablets/laptop-tables for consistent behavior */
-@media (min-width: 481px) and (max-width: 1200px) and (orientation: landscape) {
+   extend to larger tablets for consistent behavior */
+@media (min-width: 426px) and (max-width: 768px) and (orientation: landscape) {
   .right-panel {
     display: flex;
     align-items: flex-end;
@@ -458,7 +490,7 @@ body.admin-mode .icon-wrench {
 }
 
 /* Small phones and narrow tablets: stack halves (top = login, bottom = icon) */
-@media (max-width: 850px) {
+@media (max-width: 768px) {
   body {
     overflow: auto;
     min-height: 100dvh;

@@ -84,15 +84,15 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ---- MOBILE: hide long logo text to prevent clipping ---- */
-@media (max-width: 480px) {
+/* ---- MOBILE: hide long logo text to prevent clipping (320px - 425px) ---- */
+@media (max-width: 425px) {
   .topbar-logo-text { display: none !important; }
   .topbar-logo { width: 56px; padding-left: 6px; }
   .topbar-logo-img { width: 20px; height: 20px; }
 }
 
-/* ---- TABLET: treat like mobile - hide text and make icon fill red container ---- */
-@media (max-width: 1024px) {
+/* ---- TABLET: treat like mobile - hide text and make icon fill red container (426px - 768px) ---- */
+@media (min-width: 426px) and (max-width: 768px) {
   .topbar-logo-text { display: none !important; }
   .topbar-logo { width: 185px; padding-left: 0; justify-content: center; }
   .topbar-logo-img { width: 100%; height: 100%; max-width: 185px; max-height: 48px; object-fit: contain; }
@@ -104,6 +104,13 @@ body {
   font-size: 9px;
   color: var(--text-secondary);
   letter-spacing: 2px;
+}
+
+/* Standardize logo sizing and alignment from tablet (>=426px) upward */
+@media (min-width: 426px) {
+  .topbar-logo { width: 185px; height: 48px; padding-left: 8px; justify-content: center; }
+  .topbar-logo-img { width: 28px; height: 28px; }
+  .topbar-logo-text { max-width: 120px; display: inline-block; }
 }
 
 .topbar-center {
@@ -1136,8 +1143,8 @@ tbody td {
 .main::-webkit-scrollbar-thumb { background: #aaa; }
 
 /* ============= RESPONSIVE ============= */
-/* LAPTOP / SMALL PC (769px - 1279px) */
-@media (max-width: 1279px) {
+/* Laptop (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
   .sidebar { width: 160px; }
   .topbar-logo { width: 160px; font-size: 6px; height: 44px; }
   .topbar-title { font-size: 8px; padding-left: 16px; }
@@ -1145,7 +1152,99 @@ tbody td {
   .reports-stats { grid-template-columns: 1fr 1fr; }
 }
 
-/* TABLET / MOBILE (≤768px) */
+/* Desktop (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .sidebar { width: 185px; }
+  .topbar-logo { width: 185px; }
+  .topbar-title { font-size: 9px; padding-left: 18px; }
+  .main { padding: 24px 24px 32px; }
+  .action-cards { grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .action-btn { padding: 12px 14px; font-size: 8px; }
+  .action-title { font-size: 8px; }
+  .action-desc { font-size: 9px; }
+  .panel { padding: 16px; margin-bottom: 16px; }
+  .panel-title { font-size: 7px; margin-bottom: 12px; }
+  .reports-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px; }
+  .report-stat-val { font-size: 22px; }
+  .report-stat-label { font-size: 9px; }
+  .search-box { width: 150px; font-size: 10px; padding: 6px 10px; }
+  table { font-size: 10px; }
+  tbody td { padding: 10px 6px; }
+  thead th { padding: 8px 6px; font-size: 6px; }
+  .btn-sm { display: inline-block; font-size: 6px; padding: 3px 5px; margin-left: 1px; }
+  .skill-row-name { font-size: 10px; }
+  .skill-row-count { font-size: 9px; }
+  .activity-item { padding: 8px 10px; margin-bottom: 6px; }
+  .activity-date { font-size: 7px; margin-bottom: 1px; }
+  .activity-desc { font-size: 9px; }
+  .btn-export { padding: 8px 12px; font-size: 6px; }
+  .modal { width: 84vw; padding: 19px; }
+  .form-row { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* Desktop Large (1280px - 1439px) */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .sidebar { width: 190px; }
+  .topbar-logo { width: 190px; }
+  .topbar-title { font-size: 10px; padding-left: 20px; }
+  .main { padding: 28px 28px 36px; }
+  .action-cards { grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+  .action-btn { padding: 14px 16px; font-size: 8px; }
+  .action-title { font-size: 8px; }
+  .action-desc { font-size: 10px; }
+  .panel { padding: 18px; margin-bottom: 18px; }
+  .panel-title { font-size: 8px; margin-bottom: 14px; }
+  .reports-stats { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+  .report-stat-val { font-size: 24px; }
+  .report-stat-label { font-size: 10px; }
+  .search-box { width: 170px; font-size: 10px; padding: 7px 10px; }
+  table { font-size: 11px; }
+  tbody td { padding: 12px 8px; font-size: 11px; }
+  thead th { padding: 10px 8px; font-size: 7px; }
+  .btn-sm { display: inline-block; font-size: 6px; padding: 4px 6px; margin-left: 2px; }
+  .skill-bar-row { margin-bottom: 13px; }
+  .skill-row-name { font-size: 11px; }
+  .skill-row-count { font-size: 10px; }
+  .activity-item { padding: 10px 12px; margin-bottom: 8px; }
+  .activity-date { font-size: 8px; margin-bottom: 2px; }
+  .activity-desc { font-size: 10px; }
+  .btn-export { padding: 10px 14px; font-size: 7px; }
+  .modal { width: 86vw; padding: 20px; }
+  .form-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+
+/* Desktop XL (1440px+) */
+@media (min-width: 1440px) {
+  .sidebar { width: 200px; }
+  .topbar-logo { width: 200px; }
+  .topbar-title { font-size: 11px; padding-left: 22px; }
+  .main { max-width: 1680px; margin: 0 auto; padding: 32px 32px 40px; }
+  .action-cards { grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 26px; }
+  .action-btn { padding: 16px 18px; font-size: 9px; }
+  .action-title { font-size: 9px; }
+  .action-desc { font-size: 11px; }
+  .panel { padding: 24px; margin-bottom: 24px; }
+  .panel-title { font-size: 9px; margin-bottom: 18px; }
+  .reports-stats { grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 26px; }
+  .report-stat-val { font-size: 28px; }
+  .report-stat-label { font-size: 11px; }
+  .search-box { width: 200px; font-size: 11px; padding: 8px 12px; }
+  table { font-size: 12px; }
+  tbody td { padding: 14px 10px; }
+  thead th { padding: 12px 10px; font-size: 8px; }
+  .btn-sm { display: inline-block; font-size: 7px; padding: 5px 7px; margin-left: 3px; }
+  .skill-bar-row { margin-bottom: 16px; }
+  .skill-row-name { font-size: 12px; }
+  .skill-row-count { font-size: 11px; }
+  .activity-item { padding: 14px 16px; margin-bottom: 12px; }
+  .activity-date { font-size: 9px; margin-bottom: 3px; }
+  .activity-desc { font-size: 11px; }
+  .btn-export { padding: 12px 16px; font-size: 8px; }
+  .modal { width: 90vw; max-width: 1300px; padding: 28px; }
+  .form-row { grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+}
+
+/* Tablet (426px - 768px) & Mobile L (426px) */
 @media (max-width: 768px) {
   body { height: 100dvh; }
   .topbar { height: 44px;}
@@ -1216,8 +1315,8 @@ tbody td {
   .table-footer { font-size: 6px; margin-top: 10px; }
 }
 
-/* SMALL MOBILE (≤480px) */
-@media (max-width: 480px) {
+/* Mobile Large - Medium (376px - 480px) */
+@media (min-width: 376px) and (max-width: 480px) {
   .topbar { height: 40px;}
   .topbar-logo { width: 44px; height: 40px; font-size: 4px; }
   .topbar-title { font-size: 5px; padding-left: 8px; }
@@ -1252,12 +1351,32 @@ tbody td {
   .btn-export { padding: 8px 10px; font-size: 6px; }
 }
 
-/* ULTRA SMALL MOBILE (≤320px) */
-@media (max-width: 320px) {
-  .sidebar { min-height: 46px; height: 46px; padding: 3px 1px; gap: 1px; }
-  .sidebar-nav { gap: 1px; }
-  .nav-item { font-size: 5px; padding: 5px 2px; min-width: 35px; gap: 1px; }
+/* Mobile Medium (326px - 375px) */
+@media (min-width: 326px) and (max-width: 375px) {
+  .topbar { height: 38px;}
+  .topbar-logo { width: 42px; height: 38px; font-size: 3px; }
+  .topbar-title { font-size: 4px; padding-left: 6px; }
+  .topbar-avatar { width: 22px; height: 22px; font-size: 5px; }
+  
+  .sidebar { min-height: 46px; height: 46px; padding: 3px 2px; gap: 2px; }
+  .nav-item { font-size: 4px; padding: 5px 2px; min-width: 38px; gap: 1px; }
+  .nav-item svg { width: 9px; height: 9px; }
+}
+
+/* Mobile Small (320px - 325px) */
+@media (max-width: 325px) {
+  .sidebar { min-height: 44px; height: 44px; padding: 2px 1px; gap: 1px; }
+  .sidebar-nav { gap: 0.5px; }
+  .nav-item { font-size: 4px; padding: 4px 1px; min-width: 35px; gap: 0.5px; }
   .nav-item svg { width: 8px; height: 8px; }
+  .topbar { height: 36px; }
+  .topbar-logo { width: 40px; height: 36px; font-size: 3px; }
+}
+
+/* Hide long logo text for smaller mobile widths (<=760px) */
+@media (max-width: 760px) {
+  .topbar-logo-text { display: none !important; }
+  .topbar-logo { padding-left: 6px; justify-content: flex-start; }
 }
 
 /* ============================================================================
