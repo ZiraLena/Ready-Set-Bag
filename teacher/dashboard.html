@@ -7,6 +7,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
   <link rel="icon" type="image/png" sizes="256x256" href="../images/logo.png">
+  <script>
+    // Pre-paint restore: set saved teacher page before paint to avoid tab-flash
+    (function(){
+      try{
+        var last = sessionStorage.getItem('teacherLastPage');
+        if(last){
+          document.documentElement.className = document.documentElement.className + ' js-restoring';
+          document.documentElement.setAttribute('data-teacher-initial', last);
+        }
+      }catch(e){console && console.warn && console.warn('prepaint restore err', e)}
+    })();
+    // Safety fallback: if runtime JS fails to run, clear the restoring marker so body isn't hidden forever
+    setTimeout(function(){
+      try{
+        document.documentElement.classList.remove('js-restoring');
+        document.documentElement.removeAttribute('data-teacher-initial');
+        console.warn('Fallback cleared js-restoring (teacher)');
+      }catch(e){}
+    }, 2500);
+  </script>
 </head>
 <body>
 
@@ -34,7 +54,7 @@
       <div class="section-tag">Grade 6 – Sampaguita</div>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item active" onclick="navigate('home', this)">
+      <button class="nav-item" onclick="navigate('home', this)">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         HOME
       </button>
@@ -55,10 +75,32 @@
     </div>
   </div>
 
-  <main class="main">
+    <main class="main">
+
+    <!-- Pre-restore script: restore last-open teacher page and inject loader into recent activity -->
+    <script>
+      (function(){
+        try{
+          var last = sessionStorage.getItem('teacherLastPage');
+          if (last) {
+            document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+            document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+            var page = document.getElementById('page-' + last);
+            if (page) page.classList.add('active');
+            var navs = document.querySelectorAll('.nav-item');
+            for (var i=0;i<navs.length;i++){
+              var on = navs[i].getAttribute('onclick') || '';
+              if (on.indexOf("'"+last+"'")!==-1 || on.indexOf('\"'+last+'\"')!==-1) { navs[i].classList.add('active'); break; }
+            }
+          }
+          var c = document.getElementById('teacher-recent-activity');
+          if (c) c.innerHTML = '<div class="gif-loader"><img src="/images/loading.gif" class="gif-loader-image" width="72" height="72" style="width:72px;height:72px;" onerror="this.src=\'../images/loading.gif\'"/><div class="gif-loader-text">LOADING…</div></div>';
+        }catch(e){console.warn('pre-restore teacher:', e)}
+      })();
+    </script>
 
     <!-- ==================== HOME PAGE ==================== -->
-    <div class="page active" id="page-home">
+    <div class="page" id="page-home">
       <div class="page-header">
         <svg viewBox="0 0 24 24" fill="#555"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         <h1>HOME</h1>
@@ -285,9 +327,10 @@
       <div class="recent-activity-section">
         <div class="panel-title">RECENT ACTIVITY</div>
         <div id="teacher-recent-activity">
-          <div class="activity-item">
-            <div class="activity-date">Today</div>
-            <div class="activity-desc">No recent activity</div>
+          <!-- initial loader placeholder; JS will replace when data arrives -->
+          <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
+            <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
+            <div class="gif-loader-text">LOADING ACTIVITY...</div>
           </div>
         </div>
       </div>

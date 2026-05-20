@@ -28,6 +28,19 @@
   --mono: 'Share Tech Mono', monospace;
 }
 
+/* Pre-paint restore: when restoring, only show the intended page to avoid flash */
+.js-restoring #page-home,
+.js-restoring #page-session,
+.js-restoring #page-reports { display: none !important; }
+.js-restoring[data-teacher-initial="home"] #page-home { display: block !important; }
+.js-restoring[data-teacher-initial="session"] #page-session { display: block !important; }
+.js-restoring[data-teacher-initial="reports"] #page-reports { display: block !important; }
+
+/* simple gif-loader styles */
+.gif-loader { display:flex; align-items:center; gap:10px; }
+.gif-loader-image { width:72px; height:72px; object-fit:contain; image-rendering:pixelated; }
+.gif-loader-text { font-size:12px; color:var(--text-secondary); }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {

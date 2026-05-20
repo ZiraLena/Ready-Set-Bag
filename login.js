@@ -133,7 +133,15 @@ async function authenticateTeacher(email, password) {
     sessionStorage.setItem('teacherSection', teacherData.section);
     sessionStorage.setItem('loginTime', Date.now().toString());
 
-    window.location.href = './teacher/dashboard.html';
+    // Debug: log stored session values before redirect
+    try { console.log('Login (teacher) -> sessionStorage:', {
+      userRole: sessionStorage.getItem('userRole'),
+      teacherId: sessionStorage.getItem('teacherId'),
+      teacherEmail: sessionStorage.getItem('teacherEmail'),
+      loginTime: sessionStorage.getItem('loginTime')
+    }); } catch (e) {}
+
+    setTimeout(() => { window.location.href = './teacher/dashboard.html'; }, 50);
 
   } catch (error) {
     console.error('Teacher authentication error:', error);
@@ -193,7 +201,16 @@ async function authenticateAdmin() {
     sessionStorage.setItem('adminPassword', adminPassword);
     sessionStorage.setItem('loginTime', Date.now().toString());
 
-    window.location.href = './admin/dashboard.html';
+    // Debug: log stored session values before redirect
+    try { console.log('Login -> sessionStorage:', {
+      userRole: sessionStorage.getItem('userRole'),
+      adminEmail: sessionStorage.getItem('adminEmail'),
+      adminPassword: sessionStorage.getItem('adminPassword'),
+      loginTime: sessionStorage.getItem('loginTime')
+    }); } catch (e) {}
+
+    // Give a tiny tick to ensure storage is flushed then navigate
+    setTimeout(() => { window.location.href = './admin/dashboard.html'; }, 50);
 
   } catch (error) {
     console.error('Admin authentication error:', error);

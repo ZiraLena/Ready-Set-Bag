@@ -7,6 +7,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
   <link rel="icon" type="image/png" sizes="256x256" href="../images/logo.png">
+  <script>
+    // Pre-paint restore: set saved admin page before paint to avoid tab-flash
+    (function(){
+      try{
+        var last = sessionStorage.getItem('adminLastPage');
+        if(last){
+          // Add a class to body to hide initial flashes until JS runs
+          document.documentElement.className = document.documentElement.className + ' js-restoring';
+          // set a data attribute used by runtime to pick initial page
+          document.documentElement.setAttribute('data-admin-initial', last);
+        }
+      }catch(e){console && console.warn && console.warn('prepaint restore err', e)}
+    })();
+    // Safety fallback: if runtime JS fails to run, clear the restoring marker so body isn't hidden forever
+    setTimeout(function(){
+      try{
+        document.documentElement.classList.remove('js-restoring');
+        document.documentElement.removeAttribute('data-admin-initial');
+        console.warn('Fallback cleared js-restoring (admin)');
+      }catch(e){}
+    }, 2500);
+  </script>
 </head>
 <body>
 
@@ -33,7 +55,7 @@
       <div class="name">PRINCIPAL LEVY J ACUNA</div>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item active" onclick="navigate('home', this)">
+      <button class="nav-item" onclick="navigate('home', this)">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         HOME
       </button>
@@ -59,7 +81,7 @@
   </div>
 
   <main class="main">
-    <div class="page active" id="page-home">
+    <div class="page" id="page-home">
       <div class="page-header">
         <svg viewBox="0 0 24 24" fill="#555"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         <h1>HOME</h1>
@@ -133,7 +155,13 @@
 
         <div class="panel">
           <div class="panel-title">RECENT ACTIVITY</div>
-          <div id="admin-recent-activity"></div>
+            <div id="admin-recent-activity">
+              <!-- initial loader placeholder: will be replaced by JS when data arrives -->
+              <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
+                <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
+                <div class="gif-loader-text">LOADING ACTIVITY...</div>
+              </div>
+            </div>
         </div>
       </div>
 
@@ -475,6 +503,20 @@
 
 
 <div class="toast" id="toast"></div>
+
+<!-- Pre-restore script: restore last-open admin page and show recent-activity loader before other scripts load -->
+<script>
+  (function(){
+    try{
+      // Only inject a loader placeholder into the recent activity container.
+      // The head pre-paint script and CSS handle restoring the selected page.
+      var c = document.getElementById('admin-recent-activity');
+      if (c) {
+        c.innerHTML = '<div class="gif-loader"><img src="/images/loading.gif" class="gif-loader-image" width="72" height="72" style="width:72px;height:72px;" onerror="this.onerror=null;this.src=\'../images/loading.gif\'"/><div class="gif-loader-text">LOADING…</div></div>';
+      }
+    }catch(e){console && console.warn && console.warn('pre-restore admin inject err', e)}
+  })();
+</script>
 
 <!-- Firebase SDK (Compat version - works with regular script tags) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>

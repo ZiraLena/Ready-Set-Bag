@@ -28,6 +28,19 @@ window.firebaseInitPromise = new Promise((resolve) => {
         firebase.initializeApp(firebaseConfig);
         window.db = firebase.firestore();
         window.auth = firebase.auth();
+
+        // Try to enable IndexedDB persistence so clients reuse cached data
+        try {
+          firebase.firestore().enablePersistence().catch(function(err) {
+            if (err && err.code === 'failed-precondition') {
+              console.warn('Persistence failed: multiple tabs open.');
+            } else if (err && err.code === 'unimplemented') {
+              console.warn('Persistence is not available in this browser.');
+            }
+          });
+        } catch (e) {
+          console.warn('enablePersistence() error', e);
+        }
         window.firebaseReady = true;
 
         resolve();
