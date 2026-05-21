@@ -128,48 +128,31 @@
             </div>
             <div class="action-title">START NEW SESSION</div>
           </div>
-          <div class="action-desc">Launch a game session for your class</div>
+          <div class="action-desc">Launch a class session and share the code with students.</div>
+          <div class="action-note">Quick setup for in-class play and live joining.</div>
+          <div class="action-visual">
+            <img src="../images/exploration.png" alt="" class="action-visual-image">
+          </div>
           <button class="action-btn green" onclick="navigate('session', document.querySelectorAll('.nav-item')[1])">START NOW →</button>
         </div>
         <div class="action-card">
-          <div class="action-card-top">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="#444"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            </div>
-            <div class="action-title">VIEW REPORTS</div>
+        <div class="action-card-top">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="#444"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
           </div>
-          <div class="action-desc">See student performance data</div>
-          <button class="action-btn orange" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">VIEW REPORTS →</button>
+          <div class="action-title">VIEW REPORTS</div>
         </div>
+        
+        <div class="action-desc">Check scores, completion stats, and performance trends.</div>
+        
+        <div class="action-note">Review class results and spot who needs extra help.</div>
+        
+        <div class="action-visual">
+          <img src="../images/reports-icon.png" alt="Reports" class="action-visual-image">
+        </div>
+        
+        <button class="action-btn orange" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">VIEW REPORTS →</button>
       </div>
-
-      <div class="panel">
-        <div class="panel-title">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-          RECENT SESSIONS
-        </div>
-        <div class="session-item">
-          <div class="session-num">#1</div>
-          <div class="session-info">
-            <div class="session-date">MARCH 15, 2025 • 10:30 AM</div>
-            <div class="session-sub">Beginner Level • 35 students</div>
-          </div>
-          <div class="session-right">
-            <div class="session-score">78/100</div>
-            <button class="btn-view" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">VIEW →</button>
-          </div>
-        </div>
-        <div class="session-item">
-          <div class="session-num">#2</div>
-          <div class="session-info">
-            <div class="session-date">MARCH 12, 2025 • 2:00 PM</div>
-            <div class="session-sub">Beginner Level • 38 students</div>
-          </div>
-          <div class="session-right">
-            <div class="session-score">72/100</div>
-            <button class="btn-view" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">VIEW →</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -340,28 +323,28 @@
         <div class="mistake-item">
           <div class="mistake-left">
             <div class="mistake-num">1</div>
-            <div class="mistake-text">Forgot water</div>
+            <div class="mistake-text">Forgot Water</div>
           </div>
           <div class="mistake-count">18 students</div>
         </div>
         <div class="mistake-item">
           <div class="mistake-left">
             <div class="mistake-num">2</div>
-            <div class="mistake-text">Packed toy instead of first aid</div>
+            <div class="mistake-text">Forgot Medkit</div>
           </div>
           <div class="mistake-count">12 students</div>
         </div>
         <div class="mistake-item">
           <div class="mistake-left">
             <div class="mistake-num">3</div>
-            <div class="mistake-text">Exceeded weight limit</div>
+            <div class="mistake-text">Forgot Whistle</div>
           </div>
           <div class="mistake-count">9 students</div>
         </div>
         <div class="mistake-item">
           <div class="mistake-left">
             <div class="mistake-num">4</div>
-            <div class="mistake-text">Forgot whistle</div>
+            <div class="mistake-text">Forgot Flashlight</div>
           </div>
           <div class="mistake-count">7 students</div>
         </div>
@@ -385,14 +368,14 @@
             </tr>
           </thead>
           <tbody id="results-tbody">
-            <tr><td>Student 1</td><td>85</td><td class="td-time">2:30</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">12/15</td><td>2</td></tr>
-            <tr><td>Student 2</td><td>92</td><td class="td-time">2:15</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">14/15</td><td>1</td></tr>
-            <tr><td>Student 3</td><td>68</td><td class="td-time">2:58</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">9/15</td><td class="td-err-high">5</td></tr>
-            <tr><td>Student 4</td><td>78</td><td class="td-time">2:42</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">11/15</td><td class="td-err-high">3</td></tr>
-            <tr><td>Student 5</td><td>88</td><td class="td-time">2:10</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">13/15</td><td>1</td></tr>
-            <tr><td>Student 6</td><td>55</td><td class="td-time">3:00</td><td>3</td><td class="td-stage">Cognitive</td><td class="td-essentials">7/15</td><td class="td-err-high">6</td></tr>
-            <tr><td>Student 7</td><td>95</td><td class="td-time">1:55</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">15/15</td><td>0</td></tr>
-            <tr><td>Student 8</td><td>72</td><td class="td-time">2:48</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">10/15</td><td class="td-err-high">4</td></tr>
+            <tr><td>Student 1</td><td>85</td><td class="td-time">2:30</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">20/23</td><td>3</td></tr>
+            <tr><td>Student 2</td><td>92</td><td class="td-time">2:15</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">21/23</td><td>2</td></tr>
+            <tr><td>Student 3</td><td>68</td><td class="td-time">2:58</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">9/23</td><td class="td-err-high">14</td></tr>
+            <tr><td>Student 4</td><td>78</td><td class="td-time">2:42</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">11/23</td><td class="td-err-high">12</td></tr>
+            <tr><td>Student 5</td><td>88</td><td class="td-time">2:10</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">23/23</td><td>0</td></tr>
+            <tr><td>Student 6</td><td>55</td><td class="td-time">3:00</td><td>3</td><td class="td-stage">Cognitive</td><td class="td-essentials">7/23</td><td class="td-err-high">16</td></tr>
+            <tr><td>Student 7</td><td>95</td><td class="td-time">1:55</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">19/23</td><td>4</td></tr>
+            <tr><td>Student 8</td><td>72</td><td class="td-time">2:48</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">10/23</td><td class="td-err-high">13</td></tr>
           </tbody>
         </table>
         <div class="table-footer" id="results-footer">SHOWING 8 OF 8 STUDENTS</div>
