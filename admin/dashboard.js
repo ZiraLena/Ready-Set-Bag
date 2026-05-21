@@ -313,6 +313,13 @@ function clearFieldHighlights() {
   });
 }
 
+function getStudentAuthEmail(studentData) {
+  if (!studentData) return '';
+  if (studentData.authEmail) return studentData.authEmail;
+  if (studentData.username) return `${studentData.username}@readysetbag.local`;
+  return '';
+}
+
 // ---- TEACHER MANAGEMENT ----
 async function createTeacher() {
   if (typeof db === 'undefined') {
@@ -584,18 +591,20 @@ function showToast(msg, type = 'success') {
 
 // ---- INITIALIZE ON PAGE LOAD ----
 window.addEventListener('load', () => {
-  // Debug: log session + firebase state early
-  try { console.log('Admin dashboard load - session:', {
-    userRole: sessionStorage.getItem('userRole'),
-    adminEmail: sessionStorage.getItem('adminEmail'),
-    adminPassword: sessionStorage.getItem('adminPassword'),
-    adminId: sessionStorage.getItem('adminId'),
-    adminLastPage: sessionStorage.getItem('adminLastPage')
-  }, 'firebaseReady=', window.firebaseReady); } catch (e) {}
-
   window.addEventListener('error', (ev) => {
     console.error('Unhandled error on admin dashboard:', ev.error || ev.message, ev);
-    try { showToast('Error: ' + (ev.error?.message || ev.message), 'error'); } catch (e) {}
+    try {
+      const rawMsg = ev.error?.message || ev.message || '';
+      // If Firestore returned a long console URL or 'requires an index' message,
+      // avoid showing the raw URL to the user. Log full details and show concise toast.
+      if (/console\.firebase\.google\.com|requires an index|index creation/i.test(rawMsg)) {
+        showToast('A Firestore query requires an index. See console for details.', 'error');
+      } else if (rawMsg.length > 200) {
+        showToast('An error occurred. See console for details.', 'error');
+      } else {
+        showToast('Error: ' + rawMsg, 'error');
+      }
+    } catch (e) {}
   });
 
   initAuthGuard();
@@ -766,9 +775,9 @@ function setStudentModalMode(mode) {
     title.textContent = 'EDIT STUDENT';
     submitBtn.textContent = 'UPDATE STUDENT';
     submitBtn.onclick = updateAdminStudent;
-    sectionSelect.disabled = true;
-    if (addSectionBtn) addSectionBtn.disabled = true;
-    if (formNote) formNote.innerHTML = 'Editing student details. Login credentials stay the same.';
+    sectionSelect.disabled = false;
+    if (addSectionBtn) addSectionBtn.disabled = false;
+    if (formNote) formNote.innerHTML = 'Editing student details. Changing section updates their section and teacher only; login stays the same.';
     return;
   }
 
@@ -917,6 +926,7 @@ async function addSingleStudent() {
       lastName: last,
       displayName: `${first} ${last}`,
       username,
+      authEmail: studentEmail,
       studentNumber: nextNum,
       password: password,
       createdAt: new Date(),
@@ -1038,6 +1048,7 @@ async function importAdminStudentsFromCSV() {
           lastName: student.lastName,
           displayName: `${student.firstName} ${student.lastName}`,
           username,
+          authEmail: studentEmail,
           studentNumber: nextNum,
           password: password,
           createdAt: new Date(),
@@ -1228,11 +1239,14 @@ async function resetAdminStudentPassword(btn) {
     try {
       const studentData = await getDocumentData('students', id);
 
-      if (!studentData.username || !studentData.password) {
+      if (!studentData.password) {
         throw new Error('Student credentials are missing.');
       }
 
-      const studentEmail = `${studentData.username}@readysetbag.local`;
+      const studentEmail = getStudentAuthEmail(studentData);
+      if (!studentEmail) {
+        throw new Error('Student email is missing.');
+      }
 
       await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
         await currentUser.updatePassword('Student@123');
@@ -1288,7 +1302,35 @@ async function loadAdminStudentsPage(reset = false) {
   if (adminStudentsLastDoc) q = q.startAfter(adminStudentsLastDoc);
 
   try {
-    const snap = await q.get();
+    let snap;
+    try {
+      snap = await q.get();
+    } catch (err) {
+      // Firestore often returns a 'requires an index' error with a console link.
+      if (err && err.message && /index/i.test(err.message)) {
+        console.warn('Firestore query requires an index; falling back to unsorted fetch:', err);
+        try {
+          showToast('Firestore requires an index for this filter. Showing unsorted results as fallback.', 'error');
+        } catch (e) { /* ignore */ }
+
+        // Fallback: fetch matching documents without ordering, then sort client-side by studentNumber
+        const fallbackQuery = sectionFilter
+          ? window.db.collection('students').where('section', '==', sectionFilter)
+          : window.db.collection('students');
+        const fallbackSnap = await fallbackQuery.get();
+        if (fallbackSnap.empty) {
+          adminStudentsHasMore = false;
+        } else {
+          // clear any existing rows if reset was requested earlier
+          fallbackSnap.forEach(doc => appendAdminStudentRow(doc));
+          adminStudentsHasMore = false; // disable pagination for fallback
+        }
+        updateAdminStudentPaginationControls();
+        return;
+      }
+      throw err;
+    }
+
     if (snap.empty) {
       adminStudentsHasMore = false;
     } else {
@@ -1410,10 +1452,12 @@ async function updateAdminStudent() {
 
   const first = document.getElementById('s-input-first').value.trim();
   const last = document.getElementById('s-input-last').value.trim();
+  const section = document.getElementById('s-input-section').value;
 
   const emptyFields = [];
   if (!first) emptyFields.push('s-input-first');
   if (!last) emptyFields.push('s-input-last');
+  if (!section) emptyFields.push('s-input-section');
 
   if (emptyFields.length > 0) {
     highlightFields(emptyFields);
@@ -1423,10 +1467,52 @@ async function updateAdminStudent() {
 
   try {
     const studentData = await getDocumentData('students', adminStudentEditId);
+    const newTeacherId = sectionTeacherMap[section];
+    if (!newTeacherId) {
+      throw new Error('No active teacher found for the selected section.');
+    }
+
+    let studentNumber = studentData.studentNumber || parseInt(String(studentData.username || '').replace(/\D/g, ''), 10) || 1;
+    if (studentData.teacherId !== newTeacherId || studentData.section !== section) {
+      try {
+        const nextSnap = await window.db.collection('students')
+          .where('teacherId', '==', newTeacherId)
+          .orderBy('studentNumber', 'desc')
+          .limit(1)
+          .get();
+        const highest = nextSnap.docs.length ? (nextSnap.docs[0].data().studentNumber || 0) : 0;
+        studentNumber = highest + 1;
+      } catch (err) {
+        // Likely a Firestore 'requires an index' error — fallback to an unordered fetch
+        console.warn('Falling back to unordered fetch for studentNumber (possible index required):', err);
+        try { showToast('Using fallback numbering for username due to Firestore index requirement.', 'info'); } catch (e) { /* ignore */ }
+        const fallbackSnap = await window.db.collection('students')
+          .where('teacherId', '==', newTeacherId)
+          .get();
+        let highest = 0;
+        fallbackSnap.forEach(d => {
+          const data = d.data() || {};
+          const sn = data.studentNumber || parseInt(String(data.username || '').replace(/\D/g, ''), 10) || 0;
+          if (sn > highest) highest = sn;
+        });
+        studentNumber = highest + 1;
+      }
+    }
+
+    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const newUsername = sectionCode + String(studentNumber).padStart(3, '0');
+    const authEmail = getStudentAuthEmail(studentData) || `${studentData.username || newUsername}@readysetbag.local`;
+
+    // Spark-safe path: keep the Auth email stable and update the Firestore username separately.
     await window.db.collection('students').doc(adminStudentEditId).update({
       firstName: first,
       lastName: last,
       displayName: `${first} ${last}`,
+      section,
+      teacherId: newTeacherId,
+      username: newUsername,
+      studentNumber,
+      authEmail,
       updatedAt: new Date()
     });
 
@@ -1449,11 +1535,14 @@ async function deleteAdminStudent(btn) {
     try {
       const studentData = await getDocumentData('students', id);
 
-      if (!studentData.username || !studentData.password) {
+      if (!studentData.password) {
         throw new Error('Student credentials are missing.');
       }
 
-      const studentEmail = `${studentData.username}@readysetbag.local`;
+      const studentEmail = getStudentAuthEmail(studentData);
+      if (!studentEmail) {
+        throw new Error('Student email is missing.');
+      }
 
       await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
         await currentUser.delete();
