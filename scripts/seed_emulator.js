@@ -1,0 +1,172 @@
+// ============================================================================
+// LOCAL EMULATOR SEED SCRIPT  (safe: writes ONLY to the local emulator)
+// ----------------------------------------------------------------------------
+// Hardcodes the emulator hosts so it can NEVER touch production, even by
+// accident. Run the emulators first, then:  node scripts/seed_emulator.js
+// Roster (teachers + students) comes from scripts/_roster_export.json, a
+// read-only snapshot of the real roster, so names/sections match production.
+// sessionResults are synthetic sample data for development only.
+// ============================================================================
+process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8081';
+process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+
+const admin = require('../functions/node_modules/firebase-admin');
+admin.initializeApp({ projectId: 'readysetbag-da917' });
+const auth = admin.auth();
+const db = admin.firestore();
+
+let roster;
+try {
+  roster = require('./_roster_export.json');
+} catch (e) {
+  console.error('Missing scripts/_roster_export.json. Run scripts/_export_roster_from_prod.js first.');
+  process.exit(1);
+}
+
+// ---- deterministic pseudo-random so re-runs are stable ----
+let _seed = 12345;
+function rand() { _seed = (_seed * 1103515245 + 12345) & 0x7fffffff; return _seed / 0x7fffffff; }
+function randInt(min, max) { return Math.floor(rand() * (max - min + 1)) + min; }
+function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
+
+const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
+const now = Date.now();
+
+function stageForScore(score) {
+  if (score < 60) return 'Cognitive';
+  if (score < 82) return 'Associative';
+  return 'Autonomous';
+}
+
+async function upsertAuthUser({ uid, email, password }) {
+  if (!email) return;
+  try { await auth.getUser(uid); await auth.updateUser(uid, { email, password }); }
+  catch { try { await auth.createUser({ uid, email, password }); } catch (e) { /* email may already exist under another uid */ } }
+}
+
+async function main() {
+  const batchDeletes = ['sessionResults', 'sessions'];
+  for (const c of batchDeletes) {
+    const snap = await db.collection(c).get();
+    const b = db.batch();
+    snap.forEach(d => b.delete(d.ref));
+    await b.commit();
+  }
+
+  // ---- Admin login account (matches login.js hardcoded admin) ----
+  await upsertAuthUser({ uid: 'admin_local_uid', email: 'admin@readysetbag.local', password: 'Admin@123' });
+  await db.collection('admins').doc('admin_local_uid').set({ role: 'admin', createdAt: admin.firestore.FieldValue.serverTimestamp() });
+
+  // ---- Teachers (auth + docs) ----
+  for (const t of roster.teachers) {
+    await upsertAuthUser({ uid: t.id, email: t.email, password: t.password || 'TempPass123!' });
+    await db.collection('teachers').doc(t.id).set({
+      uid: t.id,
+      firstName: t.firstName || '',
+      lastName: t.lastName || '',
+      email: t.email || '',
+      section: t.section || '',
+      status: t.status || 'active',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
+
+  // ---- Students (auth + docs) ----
+  for (const s of roster.students) {
+    if (s.authUid) await upsertAuthUser({ uid: s.authUid, email: (s.username || s.id) + '@student.local', password: s.password || 'Student@123' });
+    await db.collection('students').doc(s.id).set({
+      authUid: s.authUid || '',
+      teacherId: s.teacherId || '',
+      section: s.section || '',
+      firstName: s.firstName || '',
+      lastName: s.lastName || '',
+      displayName: s.displayName || `${s.firstName || ''} ${s.lastName || ''}`.trim(),
+      username: s.username || '',
+      studentNumber: s.studentNumber || 0,
+      password: s.password || 'Student@123',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
+
+  // ---- Sessions (a few per teacher) ----
+  const teacherIds = roster.teachers.map(t => t.id);
+  const sessionByTeacher = {};
+  for (const t of roster.teachers) {
+    sessionByTeacher[t.id] = [];
+    const n = randInt(2, 4);
+    for (let i = 0; i < n; i++) {
+      const code = Array.from({ length: 5 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[randInt(0, 29)]).join('');
+      const createdAt = new Date(now - randInt(1, 20) * 86400000);
+      const ref = await db.collection('sessions').add({
+        sessionCode: code,
+        teacherId: t.id,
+        difficulty: pick(DIFFICULTIES),
+        playersJoined: randInt(3, 8),
+        playersList: [],
+        status: 'ended',
+        createdAt: admin.firestore.Timestamp.fromDate(createdAt),
+        startedAt: admin.firestore.Timestamp.fromDate(createdAt),
+        endedAt: admin.firestore.Timestamp.fromDate(new Date(createdAt.getTime() + 20 * 60000)),
+        updatedAt: admin.firestore.Timestamp.fromDate(createdAt)
+      });
+      sessionByTeacher[t.id].push({ id: ref.id, code });
+    }
+  }
+
+  // ---- sessionResults (synthetic, realistic) ----
+  // Leave a portion of students with NO results so completion rate < 100%.
+  let resultCount = 0;
+  const students = roster.students.slice();
+  for (let idx = 0; idx < students.length; idx++) {
+    const s = students[idx];
+    // ~15% of students have not played yet
+    if (rand() < 0.15) continue;
+    const teacherSessions = sessionByTeacher[s.teacherId] || [];
+    if (!teacherSessions.length) continue;
+
+    const runs = randInt(1, 3);
+    for (let r = 0; r < runs; r++) {
+      // base ability per student (some students consistently need support)
+      const ability = 45 + ((idx * 7) % 50); // 45..94 spread
+      const score = Math.max(30, Math.min(100, Math.round(ability + randInt(-12, 12))));
+      const essentialsMax = 15;
+      const essentials = Math.max(0, Math.min(essentialsMax, Math.round((score / 100) * essentialsMax + randInt(-2, 1))));
+      const errors = Math.max(0, Math.round((100 - score) / 12) + randInt(0, 2));
+      const completionTime = randInt(90, 300);
+      const sess = pick(teacherSessions);
+      const createdAt = new Date(now - randInt(0, 18) * 86400000 - randInt(0, 20) * 3600000);
+      await db.collection('sessionResults').add({
+        sessionId: sess.id,
+        sessionCode: sess.code,
+        teacherId: s.teacherId,
+        studentId: s.id,
+        studentName: s.displayName || `${s.firstName} ${s.lastName}`,
+        section: s.section,
+        score,
+        completionTime,
+        attempts: r + 1,
+        stage: stageForScore(score),
+        essentials,
+        essentialsMax,
+        errors,
+        difficulty: pick(DIFFICULTIES),
+        createdAt: admin.firestore.Timestamp.fromDate(createdAt),
+        updatedAt: admin.firestore.Timestamp.fromDate(createdAt)
+      });
+      resultCount++;
+    }
+  }
+
+  console.log('Seed complete (EMULATOR ONLY):');
+  console.log(`  admins: 1  |  teachers: ${roster.teachers.length}  |  students: ${roster.students.length}`);
+  console.log(`  sessions: ${Object.values(sessionByTeacher).reduce((a, x) => a + x.length, 0)}  |  sessionResults: ${resultCount}`);
+  console.log('\nLogins (emulator):');
+  console.log('  Admin   -> username: admin / password: Admin@123');
+  for (const t of roster.teachers) {
+    console.log(`  Teacher -> ${t.email} / ${t.password || 'TempPass123!'}  (${t.section})`);
+  }
+  process.exit(0);
+}
+main().catch(e => { console.error(e); process.exit(1); });

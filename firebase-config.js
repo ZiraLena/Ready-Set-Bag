@@ -29,6 +29,14 @@ window.firebaseInitPromise = new Promise((resolve) => {
         window.db = firebase.firestore();
         window.auth = firebase.auth();
 
+        // Point at local emulators when served from the Firebase Hosting emulator
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        if (isLocal) {
+          window.db.useEmulator('localhost', 8081);
+          window.auth.useEmulator('http://localhost:9099');
+          console.log('Connected to Firebase emulators (Firestore :8080, Auth :9099)');
+        }
+
         // Try to enable IndexedDB persistence so clients reuse cached data
         try {
           firebase.firestore().enablePersistence().catch(function(err) {

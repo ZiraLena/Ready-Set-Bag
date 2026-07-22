@@ -11,6 +11,12 @@ package-lock.json
 # Firebase service account (do NOT commit)
 scripts/serviceAccountKey.json
 
+# Local dev seed artifacts (contain real roster data — do NOT commit)
+scripts/_roster_export.json
+firestore-debug.log
+ui-debug.log
+firebase-debug.log
+
 # Build outputs
 dist/
 build/

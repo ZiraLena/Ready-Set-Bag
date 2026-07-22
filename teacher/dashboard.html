@@ -38,7 +38,7 @@
   <div class="topbar-center">
     <div class="topbar-title" id="topbar-title">TEACHER DASHBOARD</div>
     <div class="avatar-dropdown">
-      <button class="topbar-avatar" onclick="toggleAvatarMenu()">MS</button>
+      <button class="topbar-avatar" id="teacher-avatar" onclick="toggleAvatarMenu()">MS</button>
       <div class="avatar-menu" id="avatar-menu">
         <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
       </div>
@@ -117,6 +117,38 @@
         <div class="welcome-status">
           <div class="status-dot"></div>
           ACTIVE
+        </div>
+      </div>
+
+      <!-- Live class snapshot -->
+      <div class="home-stats">
+        <div class="home-stat-card blue">
+          <div class="home-stat-icon">👥</div>
+          <div class="home-stat-body">
+            <div class="home-stat-val" id="home-my-students">—</div>
+            <div class="home-stat-label">MY STUDENTS</div>
+          </div>
+        </div>
+        <div class="home-stat-card orange">
+          <div class="home-stat-icon">🎮</div>
+          <div class="home-stat-body">
+            <div class="home-stat-val" id="home-sessions-run">—</div>
+            <div class="home-stat-label">SESSIONS RUN</div>
+          </div>
+        </div>
+        <div class="home-stat-card green">
+          <div class="home-stat-icon">⭐</div>
+          <div class="home-stat-body">
+            <div class="home-stat-val" id="home-avg-score">—</div>
+            <div class="home-stat-label">AVG SCORE</div>
+          </div>
+        </div>
+        <div class="home-stat-card blue">
+          <div class="home-stat-icon">✅</div>
+          <div class="home-stat-body">
+            <div class="home-stat-val" id="home-completion">—</div>
+            <div class="home-stat-label">COMPLETION</div>
+          </div>
         </div>
       </div>
 
@@ -264,16 +296,11 @@
 
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
-        <select class="filter-select">
-          <option>All Sessions</option>
-          <option>March 15, 2025</option>
-          <option>March 12, 2025</option>
-        </select>
-        <select class="filter-select">
-          <option>All Levels</option>
-          <option>Beginner</option>
-          <option>Intermediate</option>
-          <option>Advanced</option>
+        <select class="filter-select" id="tr-level-filter" onchange="renderTeacherReports()">
+          <option value="">All Levels</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
         </select>
       </div>
 
@@ -283,7 +310,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
           </div>
           <div>
-            <div class="report-stat-val">78/100</div>
+            <div class="report-stat-val" id="tr-avg-score">—</div>
             <div class="report-stat-label">Average Score</div>
           </div>
         </div>
@@ -292,7 +319,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
           </div>
           <div>
-            <div class="report-stat-val">92%</div>
+            <div class="report-stat-val" id="tr-completion">—</div>
             <div class="report-stat-label">Completion Rate</div>
           </div>
         </div>
@@ -301,7 +328,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
           </div>
           <div>
-            <div class="report-stat-val">2m 34s</div>
+            <div class="report-stat-val" id="tr-avg-time">—</div>
             <div class="report-stat-label">Avg. Time</div>
           </div>
         </div>
@@ -318,35 +345,17 @@
         </div>
       </div>
 
-      <div class="mistakes-section">
-        <div class="skill-prog-title">COMMON MISTAKES</div>
-        <div class="mistake-item">
-          <div class="mistake-left">
-            <div class="mistake-num">1</div>
-            <div class="mistake-text">Forgot Water</div>
-          </div>
-          <div class="mistake-count">18 students</div>
+      <!-- ==================== CLASS LEADERBOARD ==================== -->
+      <div class="leaderboard-section">
+        <div class="leaderboard-header">
+          <div class="skill-prog-title" style="margin:0;">🏆 CLASS LEADERBOARD</div>
+          <div class="leaderboard-sub">Ranked by best score</div>
         </div>
-        <div class="mistake-item">
-          <div class="mistake-left">
-            <div class="mistake-num">2</div>
-            <div class="mistake-text">Forgot Medkit</div>
-          </div>
-          <div class="mistake-count">12 students</div>
-        </div>
-        <div class="mistake-item">
-          <div class="mistake-left">
-            <div class="mistake-num">3</div>
-            <div class="mistake-text">Forgot Whistle</div>
-          </div>
-          <div class="mistake-count">9 students</div>
-        </div>
-        <div class="mistake-item">
-          <div class="mistake-left">
-            <div class="mistake-num">4</div>
-            <div class="mistake-text">Forgot Flashlight</div>
-          </div>
-          <div class="mistake-count">7 students</div>
+        <!-- Top-3 podium -->
+        <div class="lb-podium" id="lb-podium"></div>
+        <!-- Ranked list -->
+        <div class="lb-list" id="leaderboard-list">
+          <div class="lb-empty" style="color:var(--text-muted);text-align:center;padding:18px;">Loading…</div>
         </div>
       </div>
 
@@ -368,17 +377,10 @@
             </tr>
           </thead>
           <tbody id="results-tbody">
-            <tr><td>Student 1</td><td>85</td><td class="td-time">2:30</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">20/23</td><td>3</td></tr>
-            <tr><td>Student 2</td><td>92</td><td class="td-time">2:15</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">21/23</td><td>2</td></tr>
-            <tr><td>Student 3</td><td>68</td><td class="td-time">2:58</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">9/23</td><td class="td-err-high">14</td></tr>
-            <tr><td>Student 4</td><td>78</td><td class="td-time">2:42</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">11/23</td><td class="td-err-high">12</td></tr>
-            <tr><td>Student 5</td><td>88</td><td class="td-time">2:10</td><td>1</td><td class="td-stage">Associative</td><td class="td-essentials">23/23</td><td>0</td></tr>
-            <tr><td>Student 6</td><td>55</td><td class="td-time">3:00</td><td>3</td><td class="td-stage">Cognitive</td><td class="td-essentials">7/23</td><td class="td-err-high">16</td></tr>
-            <tr><td>Student 7</td><td>95</td><td class="td-time">1:55</td><td>1</td><td class="td-stage">Autonomous</td><td class="td-essentials">19/23</td><td>4</td></tr>
-            <tr><td>Student 8</td><td>72</td><td class="td-time">2:48</td><td>2</td><td class="td-stage">Cognitive</td><td class="td-essentials">10/23</td><td class="td-err-high">13</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
-        <div class="table-footer" id="results-footer">SHOWING 8 OF 8 STUDENTS</div>
+        <div class="table-footer" id="results-footer"></div>
       </div>
 
       <div class="export-bar">
@@ -407,6 +409,9 @@
 
 <!-- Auth Guard Script -->
 <script src="auth-guard-teacher.js"></script>
+
+<!-- Shared reports analytics helper -->
+<script src="../reports-analytics.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

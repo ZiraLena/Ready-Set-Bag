@@ -121,15 +121,15 @@
             <div class="stats-inline">
               <div class="stat-inline-item">
                 <div class="stat-inline-label">AVG SCORE</div>
-                <div class="stat-inline-val">75/100</div>
+                <div class="stat-inline-val" id="sw-avg-score">—</div>
               </div>
               <div class="stat-inline-item">
                 <div class="stat-inline-label">SESSIONS</div>
-                <div class="stat-inline-val">48</div>
+                <div class="stat-inline-val" id="sw-sessions">—</div>
               </div>
               <div class="stat-inline-item">
                 <div class="stat-inline-label">COMPLETION</div>
-                <div class="stat-inline-val">89%</div>
+                <div class="stat-inline-val" id="sw-completion">—</div>
               </div>
             </div>
           </div>
@@ -137,18 +137,18 @@
             <div class="panel-title" style="margin-bottom:14px;">SKILL PROGRESSION (ALL SECTIONS)</div>
             <div class="skill-bar-row">
               <div class="skill-bar-label">COGNITIVE</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill red" style="width:73%"></div></div>
-              <div class="skill-bar-pct">73%</div>
+              <div class="skill-bar-track"><div class="skill-bar-fill red" id="sw-skill-cognitive" style="width:0%"></div></div>
+              <div class="skill-bar-pct" id="sw-skill-cognitive-pct">0%</div>
             </div>
             <div class="skill-bar-row">
               <div class="skill-bar-label">ASSOCIATIVE</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill orange" style="width:20%"></div></div>
-              <div class="skill-bar-pct">20%</div>
+              <div class="skill-bar-track"><div class="skill-bar-fill orange" id="sw-skill-associative" style="width:0%"></div></div>
+              <div class="skill-bar-pct" id="sw-skill-associative-pct">0%</div>
             </div>
             <div class="skill-bar-row">
               <div class="skill-bar-label">AUTONOMOUS</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill green" style="width:7%"></div></div>
-              <div class="skill-bar-pct">7%</div>
+              <div class="skill-bar-track"><div class="skill-bar-fill green" id="sw-skill-autonomous" style="width:0%"></div></div>
+              <div class="skill-bar-pct" id="sw-skill-autonomous-pct">0%</div>
             </div>
           </div>
         </div>
@@ -262,40 +262,32 @@
 
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
-        <select class="filter-select">
-          <option>ALL SECTIONS</option>
-          <option>G6-Sampaguita</option>
-          <option>G6-Roses</option>
-          <option>G6-Sunflowers</option>
-          <option>G6-Lilies</option>
-          <option>G6-Jasmine</option>
-          <option>G6-Orchids</option>
-          <option>G6-Daisies</option>
-          <option>G6-Tulips</option>
+        <select class="filter-select" id="reports-section-filter" onchange="renderAdminReports()">
+          <option value="">ALL SECTIONS</option>
         </select>
-        <select class="filter-select">
-          <option>ALL LEVELS</option>
-          <option>Beginner</option>
-          <option>Intermediate</option>
-          <option>Advanced</option>
+        <select class="filter-select" id="reports-level-filter" onchange="renderAdminReports()">
+          <option value="">ALL LEVELS</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
         </select>
       </div>
 
       <div class="reports-stats">
         <div class="stat-card blue">
           <div class="stat-label">TOTAL STUDENTS</div>
-          <div class="stat-value">320</div>
-          <div class="stat-sub">8 sections</div>
+          <div class="stat-value" id="reports-total-students">—</div>
+          <div class="stat-sub" id="reports-total-students-sub">—</div>
         </div>
         <div class="stat-card green">
           <div class="stat-label">AVG SCORE</div>
-          <div class="stat-value">75/100</div>
-          <div class="stat-sub">all sections</div>
+          <div class="stat-value" id="reports-avg-score">—</div>
+          <div class="stat-sub" id="reports-avg-score-sub">—</div>
         </div>
         <div class="stat-card orange">
           <div class="stat-label">COMPLETION RATE</div>
-          <div class="stat-value">89%</div>
-          <div class="stat-sub">285/320</div>
+          <div class="stat-value" id="reports-completion">—</div>
+          <div class="stat-sub" id="reports-completion-sub">—</div>
         </div>
       </div>
 
@@ -310,35 +302,22 @@
             </tr>
           </thead>
           <tbody id="section-report-tbody">
-            <tr><td>Sampaguita</td><td class="td-avg">75</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Roses</td><td class="td-avg">74</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Sunflowers</td><td class="td-avg">78</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Lilies</td><td class="td-avg">68</td><td><span class="status-badge below-threshold">⚠ Needs Support</span></td></tr>
-            <tr><td>Jasmine</td><td class="td-avg">77</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Orchids</td><td class="td-avg">73</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Daisies</td><td class="td-avg">72</td><td><span class="status-badge">Good</span></td></tr>
-            <tr><td>Tulips</td><td class="td-avg">71</td><td><span class="status-badge">Good</span></td></tr>
-            <tr style="border-top:2px solid #444;">
-              <td class="td-school-avg">SCHOOL AVG</td>
-              <td class="td-avg td-school-avg">75</td>
-              <td><span class="status-badge">Good</span></td>
-            </tr>
+            <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
-      </div> 
+      </div>
 
       <div class="reports-bottom">
         <div class="panel">
           <div class="panel-title">🏆 TOP PERFORMING SECTIONS</div>
-          <div class="top-section-item"><span class="medal">🥇</span><span class="top-section-name">Sunflowers</span><span class="top-section-score">78/100</span></div>
-          <div class="top-section-item"><span class="medal">🥈</span><span class="top-section-name">Jasmine</span><span class="top-section-score">77/100</span></div>
-          <div class="top-section-item"><span class="medal">🥉</span><span class="top-section-name">Sampaguita</span><span class="top-section-score">75/100</span></div>
+          <div id="top-sections-list">
+            <div class="top-section-item"><span class="top-section-name" style="color:var(--text-muted);">Loading…</span></div>
+          </div>
         </div>
         <div class="panel">
           <div class="panel-title" style="color:#e74c3c;">⚠ NEEDS SUPPORT</div>
-          <div class="needs-support-item">
-            <div class="needs-support-name">Lilies – 68/100</div>
-            <div class="needs-support-note">CONSIDER ADDITIONAL TRAINING</div>
+          <div id="needs-support-list">
+            <div class="needs-support-item"><div class="needs-support-name" style="color:var(--text-muted);">Loading…</div></div>
           </div>
         </div>
       </div>
@@ -346,12 +325,13 @@
       <div class="individual-panel">
         <div class="individual-header">
           <div class="panel-title" style="margin:0;">INDIVIDUAL RESULTS</div>
-          <input class="search-box" type="text" placeholder="🔍 Search...">
+          <input class="search-box" id="admin-individual-search" type="text" placeholder="🔍 Search..." oninput="renderAdminIndividualResults()">
         </div>
         <table>
           <thead>
             <tr>
               <th>Student</th>
+              <th>Section</th>
               <th>Score</th>
               <th>Time</th>
               <th>Stage</th>
@@ -359,17 +339,11 @@
               <th>Errors</th>
             </tr>
           </thead>
-          <tbody>
-            <tr><td>Student 1</td><td>85</td><td class="td-time">2:30</td><td class="td-stage">Associative</td><td class="td-essentials">12/15</td><td>2</td></tr>
-            <tr><td>Student 2</td><td>92</td><td class="td-time">2:15</td><td class="td-stage">Autonomous</td><td class="td-essentials">14/15</td><td>1</td></tr>
-            <tr><td>Student 3</td><td>68</td><td class="td-time">2:50</td><td class="td-stage">Cognitive</td><td class="td-essentials">9/15</td><td class="td-err-high">5</td></tr>
-            <tr><td>Student 4</td><td>78</td><td class="td-time">2:42</td><td class="td-stage">Associative</td><td class="td-essentials">11/15</td><td class="td-err-high">3</td></tr>
-            <tr><td>Student 5</td><td>88</td><td class="td-time">2:10</td><td class="td-stage">Associative</td><td class="td-essentials">13/15</td><td>1</td></tr>
-            <tr><td>Student 6</td><td>55</td><td class="td-time">3:00</td><td class="td-stage">Cognitive</td><td class="td-essentials">7/15</td><td class="td-err-high">6</td></tr>
-            <tr><td>Student 7</td><td>95</td><td class="td-time">1:55</td><td class="td-stage">Autonomous</td><td class="td-essentials">15/15</td><td>0</td></tr>
-            <tr><td>Student 8</td><td>72</td><td class="td-time">2:48</td><td class="td-stage">Cognitive</td><td class="td-essentials">10/15</td><td class="td-err-high">4</td></tr>
+          <tbody id="admin-individual-tbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
+        <div class="table-footer" id="admin-individual-footer"></div>
       </div>
 
       <div class="export-bar">
@@ -528,6 +502,9 @@
 
 <!-- Auth Guard Script -->
 <script src="auth-guard-admin.js"></script>
+
+<!-- Shared reports analytics helper -->
+<script src="../reports-analytics.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

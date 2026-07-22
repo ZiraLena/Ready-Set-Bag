@@ -649,6 +649,9 @@ window.addEventListener('load', () => {
     } else {
       updateHomeStats();
       loadTotalSessionsCount();
+      // Reports engine feeds BOTH the Home school-wide panel/skill bars and the
+      // Reports page, so load it regardless of which page is active.
+      loadAdminReports();
     }
 
     // After Firebase is ready, ensure the *active* page has its data loaders attached.
@@ -1578,67 +1581,189 @@ function loadTotalSessionsCount() {
     window.firebaseInitPromise.then(() => loadTotalSessionsCount());
     return;
   }
-  
+
   if (!window.db) return;
-  
+
   window.db.collection('sessions').onSnapshot((snapshot) => {
     const count = snapshot.size;
     const element = document.getElementById('total-sessions-count');
-    if (element) {
-      element.textContent = count;
-    }
+    if (element) element.textContent = count;
+    // School-wide statistics panel (Home) also shows a SESSIONS figure
+    const swSessions = document.getElementById('sw-sessions');
+    if (swSessions) swSessions.textContent = count;
   });
 }
 
-// ---- FLAG BELOW-70% SECTIONS ----
-function flagBelowThresholdSections() {
+/* ============================================================================
+   SCHOOL-WIDE REPORTS ENGINE
+   Uses window.RSBAnalytics for all aggregation so the numbers match the
+   teacher dashboard. Reads the full sessionResults + students collections
+   (school-wide, admin scope) once via a live listener, caches them, and
+   re-renders whenever the section/level filters change.
+   ============================================================================ */
+let adminResultsCache = [];
+let adminStudentsCache = [];
+let adminResultsListener = null;
+let adminReportsFiltersPopulated = false;
+
+function loadAdminReports() {
   if (!window.firebaseReady) {
-    window.firebaseInitPromise.then(() => flagBelowThresholdSections());
+    window.firebaseInitPromise.then(() => loadAdminReports());
     return;
   }
-  
-  if (!window.db) return;
-  
-  // Get all sessionResults and aggregate by section
-  // Limit the sessionResults listener to a reasonable number to avoid full-collection reads
-  window.db.collection('sessionResults').limit(1000).onSnapshot((snapshot) => {
-    const sectionStats = {};
-    
-    snapshot.forEach((doc) => {
-      const result = doc.data();
-      const section = result.section || 'Unknown';
-      
-      if (!sectionStats[section]) {
-        sectionStats[section] = { totalScore: 0, count: 0 };
-      }
-      sectionStats[section].totalScore += result.score || 0;
-      sectionStats[section].count++;
-    });
-    
-    // Calculate averages and highlight below-70%
-    const tbody = document.getElementById('section-report-tbody');
-    if (!tbody) return;
-    
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach((row, index) => {
-      const sectionName = row.querySelector('td:first-child')?.textContent.trim();
-      const scoreCell = row.querySelector('td:nth-child(2)');
-      const statusCell = row.querySelector('td:nth-child(3)');
-      
-      if (sectionName && statusCell && sectionName !== 'SCHOOL AVG') {
-        const score = parseInt(scoreCell?.textContent) || 0;
-        
-        if (score < 70) {
-          row.style.backgroundColor = 'rgba(231, 76, 60, 0.15)';
-          statusCell.innerHTML = '<span class="status-badge below-threshold">⚠ Needs Support</span>';
-        } else {
-          row.style.backgroundColor = '';
-          statusCell.innerHTML = '<span class="status-badge">Good</span>';
-        }
-      }
-    });
-  });
+  if (!window.db || !window.RSBAnalytics) return;
+
+  // Fetch the roster once (students rarely change during a reports view).
+  window.db.collection('students').get().then((snap) => {
+    adminStudentsCache = snap.docs.map(d => d.data());
+    populateAdminSectionFilter();
+    renderAdminReports();
+  }).catch(e => console.warn('admin reports: students fetch failed', e));
+
+  // Live listener on results so numbers update as the game feeds data.
+  if (adminResultsListener) { adminResultsListener(); adminResultsListener = null; }
+  adminResultsListener = window.db.collection('sessionResults').limit(2000)
+    .onSnapshot((snap) => {
+      adminResultsCache = snap.docs.map(d => d.data());
+      populateAdminSectionFilter();
+      renderAdminReports();
+    }, (err) => console.warn('admin reports: results listener error', err));
 }
+
+function populateAdminSectionFilter() {
+  if (adminReportsFiltersPopulated) return;
+  const sel = document.getElementById('reports-section-filter');
+  if (!sel || !window.RSBAnalytics) return;
+  const sections = window.RSBAnalytics.distinctSections(adminResultsCache, adminStudentsCache);
+  if (!sections.length) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">ALL SECTIONS</option>' +
+    sections.map(s => `<option value="${window.RSBAnalytics.esc(s)}">${window.RSBAnalytics.esc(s)}</option>`).join('');
+  sel.value = current;
+  adminReportsFiltersPopulated = true;
+}
+
+function getAdminReportFilters() {
+  return {
+    section: (document.getElementById('reports-section-filter')?.value) || '',
+    difficulty: (document.getElementById('reports-level-filter')?.value) || ''
+  };
+}
+
+function renderAdminReports() {
+  const A = window.RSBAnalytics;
+  if (!A) return;
+  const filters = getAdminReportFilters();
+  const results = adminResultsCache;
+  const students = adminStudentsCache;
+
+  const metrics = A.computeMetrics(results, students, filters);
+  const sections = A.sectionAverages(results, students, filters);
+  const dist = A.stageDistribution(results, filters);
+
+  // --- Reports stat cards ---
+  setText('reports-total-students', metrics.totalStudents);
+  setText('reports-total-students-sub', metrics.sectionsCount + (metrics.sectionsCount === 1 ? ' section' : ' sections'));
+  setText('reports-avg-score', metrics.hasData ? metrics.avgScore + '/100' : '—');
+  setText('reports-avg-score-sub', filters.section ? filters.section : 'all sections');
+  setText('reports-completion', metrics.totalStudents ? metrics.completionRate + '%' : '—');
+  setText('reports-completion-sub', metrics.playedCount + '/' + metrics.totalStudents);
+
+  // --- Home School-wide statistics panel ---
+  setText('sw-avg-score', metrics.hasData ? metrics.avgScore + '/100' : '—');
+  setText('sw-completion', metrics.totalStudents ? metrics.completionRate + '%' : '—');
+
+  // --- Skill progression bars (stage distribution) ---
+  setSkillBar('sw-skill-cognitive', dist.Cognitive);
+  setSkillBar('sw-skill-associative', dist.Associative);
+  setSkillBar('sw-skill-autonomous', dist.Autonomous);
+
+  // --- Average scores by section table ---
+  const tbody = document.getElementById('section-report-tbody');
+  if (tbody) {
+    if (!sections.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    } else {
+      let html = sections.map(s => {
+        const badge = s.needsSupport
+          ? '<span class="status-badge below-threshold">⚠ Needs Support</span>'
+          : '<span class="status-badge">Good</span>';
+        const rowStyle = s.needsSupport ? ' style="background-color:rgba(231,76,60,0.15);"' : '';
+        return `<tr${rowStyle}><td>${A.esc(s.section)}</td><td class="td-avg">${s.avg}</td><td>${badge}</td></tr>`;
+      }).join('');
+      // School average row
+      const schoolAvg = metrics.hasData ? metrics.avgScore : 0;
+      html += `<tr style="border-top:2px solid #444;"><td class="td-school-avg">SCHOOL AVG</td><td class="td-avg td-school-avg">${schoolAvg}</td><td><span class="status-badge${schoolAvg < A.SUPPORT_THRESHOLD ? ' below-threshold' : ''}">${schoolAvg < A.SUPPORT_THRESHOLD ? '⚠ Needs Support' : 'Good'}</span></td></tr>`;
+      tbody.innerHTML = html;
+    }
+  }
+
+  // --- Top performing sections ---
+  const topList = document.getElementById('top-sections-list');
+  if (topList) {
+    const medals = ['🥇', '🥈', '🥉'];
+    const top = sections.slice(0, 3);
+    topList.innerHTML = top.length
+      ? top.map((s, i) => `<div class="top-section-item"><span class="medal">${medals[i] || '🏅'}</span><span class="top-section-name">${A.esc(s.section)}</span><span class="top-section-score">${s.avg}/100</span></div>`).join('')
+      : '<div class="top-section-item"><span class="top-section-name" style="color:var(--text-muted);">No results yet</span></div>';
+  }
+
+  // --- Needs support (students below threshold) ---
+  const needsList = document.getElementById('needs-support-list');
+  if (needsList) {
+    const strugglers = A.studentsNeedingSupport(results, filters).slice(0, 6);
+    needsList.innerHTML = strugglers.length
+      ? strugglers.map(s => `<div class="needs-support-item"><div class="needs-support-name">${A.esc(s.studentName)} – ${s.avgScore}/100</div><div class="needs-support-note">${A.esc(s.section)} · CONSIDER ADDITIONAL TRAINING</div></div>`).join('')
+      : '<div class="needs-support-item"><div class="needs-support-name" style="color:var(--accent-green);">✓ All students on track</div><div class="needs-support-note">No students below ' + A.SUPPORT_THRESHOLD + '%</div></div>';
+  }
+
+  // --- Individual results table ---
+  renderAdminIndividualResults();
+}
+
+function renderAdminIndividualResults() {
+  const A = window.RSBAnalytics;
+  if (!A) return;
+  const tbody = document.getElementById('admin-individual-tbody');
+  const footer = document.getElementById('admin-individual-footer');
+  if (!tbody) return;
+
+  const filters = getAdminReportFilters();
+  let rows = A.individualRows(adminResultsCache, filters);
+  const q = (document.getElementById('admin-individual-search')?.value || '').trim().toLowerCase();
+  if (q) rows = rows.filter(r => (r.studentName || '').toLowerCase().includes(q) || (r.section || '').toLowerCase().includes(q));
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    if (footer) footer.textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const errClass = r.errors >= 3 ? ' class="td-err-high"' : '';
+    return `<tr>
+      <td>${A.esc(r.studentName)}</td>
+      <td>${A.esc(r.section)}</td>
+      <td>${r.bestScore}</td>
+      <td class="td-time">${A.formatTime(r.best.completionTime)}</td>
+      <td class="td-stage">${A.esc(r.stage)}</td>
+      <td class="td-essentials">${r.essentials}/${r.essentialsMax}</td>
+      <td${errClass}>${r.errors}</td>
+    </tr>`;
+  }).join('');
+  if (footer) footer.textContent = `SHOWING ${rows.length} STUDENT${rows.length === 1 ? '' : 'S'} WITH RESULTS`;
+}
+
+// Small DOM helpers
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function setSkillBar(id, pct) {
+  const el = document.getElementById(id);
+  if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  const pctEl = document.getElementById(id + '-pct');
+  if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+}
+
+// Backwards-compatible alias (init + nav still call this name)
+function flagBelowThresholdSections() { loadAdminReports(); }
 
 // ---- LOAD ADMIN RECENT ACTIVITY ----
 function loadAdminRecentActivity() {

@@ -7,6 +7,12 @@ let teacherId = null;
 let teacherSection = null;
 let teacherRecentActivityListener = null;
 
+// Reports/analytics state
+let teacherResultsCache = [];
+let teacherStudentsCache = [];
+let teacherResultsListener = null;
+let teacherSessionsCount = null;
+
 // Load teacher info on page load
 window.addEventListener('load', () => {
   // Debug: log session + firebase state early
@@ -51,17 +57,25 @@ window.addEventListener('load', () => {
     // Update sidebar-user
     document.querySelector('.sidebar-user .name').textContent = username.toUpperCase();
     document.querySelector('.sidebar-user .section-tag').textContent = section;
-    
+
     // Update welcome-card
     document.querySelector('.welcome-greeting').textContent = `👋 WELCOME BACK, TEACHER ${username.toUpperCase()}!`;
     document.querySelectorAll('.welcome-meta-item')[0].textContent = `🏫 ${section}`;
+
+    // Topbar avatar initials (was hardcoded "MS")
+    const initials = username.trim().split(/\s+/).map(w => w[0] || '').slice(0, 2).join('').toUpperCase();
+    const avatar = document.getElementById('teacher-avatar');
+    if (avatar && initials) avatar.textContent = initials;
   }
-  
+
   teacherId = sessionStorage.getItem('teacherId');
   teacherSection = section;
-  
+
   // Load student count for this teacher
   loadTeacherStudentCount();
+
+  // Load analytics for Home quick-stats + Reports (metrics, leaderboard, results)
+  loadTeacherReports();
   
   // Load recent activity when reports page is viewed
   document.addEventListener('click', (e) => {
@@ -267,6 +281,137 @@ function loadTeacherRecentActivity() {
       });
   })();
 }
+
+/* ============================================================================
+   TEACHER REPORTS ENGINE
+   Teacher-scoped analytics via window.RSBAnalytics. Feeds the Home quick-stats,
+   the Reports metric cards (avg score / completion / avg time), the class
+   leaderboard, and the individual results table. Re-renders on filter change.
+   ============================================================================ */
+function loadTeacherReports() {
+  (async () => {
+    if (!window.firebaseReady && window.firebaseInitPromise) {
+      await window.firebaseInitPromise;
+    }
+    if (!teacherId || !window.db || !window.RSBAnalytics) return;
+
+    // Roster for this teacher (for total students + completion rate)
+    window.db.collection('students').where('teacherId', '==', teacherId).get()
+      .then((snap) => { teacherStudentsCache = snap.docs.map(d => d.data()); renderTeacherReports(); })
+      .catch(e => console.warn('teacher reports: students fetch failed', e));
+
+    // Sessions run (Home quick-stat)
+    window.db.collection('sessions').where('teacherId', '==', teacherId).get()
+      .then((snap) => { teacherSessionsCount = snap.size; renderTeacherReports(); })
+      .catch(() => { /* non-critical */ });
+
+    // Live results listener
+    if (teacherResultsListener) { teacherResultsListener(); teacherResultsListener = null; }
+    teacherResultsListener = window.db.collection('sessionResults')
+      .where('teacherId', '==', teacherId).limit(1000)
+      .onSnapshot((snap) => { teacherResultsCache = snap.docs.map(d => d.data()); renderTeacherReports(); },
+        (err) => console.warn('teacher reports: results listener error', err));
+  })();
+}
+
+function getTeacherFilters() {
+  return { difficulty: (document.getElementById('tr-level-filter')?.value) || '' };
+}
+
+function renderTeacherReports() {
+  const A = window.RSBAnalytics;
+  if (!A) return;
+  const filters = getTeacherFilters();
+  const m = A.computeMetrics(teacherResultsCache, teacherStudentsCache, filters);
+
+  // Reports metric cards
+  setTeacherText('tr-avg-score', m.hasData ? m.avgScore + '/100' : '—');
+  setTeacherText('tr-completion', m.totalStudents ? m.completionRate + '%' : '—');
+  setTeacherText('tr-avg-time', m.hasData ? A.formatTime(m.avgTime) : '—');
+
+  // Home quick-stats
+  setTeacherText('home-my-students', m.totalStudents || 0);
+  setTeacherText('home-sessions-run', typeof teacherSessionsCount === 'number' ? teacherSessionsCount : '—');
+  setTeacherText('home-avg-score', m.hasData ? m.avgScore : '—');
+  setTeacherText('home-completion', m.totalStudents ? m.completionRate + '%' : '—');
+
+  renderTeacherLeaderboard();
+  renderTeacherIndividualResults();
+}
+
+function renderTeacherLeaderboard() {
+  const A = window.RSBAnalytics;
+  if (!A) return;
+  const board = A.leaderboard(teacherResultsCache, getTeacherFilters());
+  const podium = document.getElementById('lb-podium');
+  const list = document.getElementById('leaderboard-list');
+  if (!list) return;
+
+  if (!board.length) {
+    if (podium) podium.innerHTML = '';
+    list.innerHTML = '<div class="lb-empty" style="color:var(--text-muted);text-align:center;padding:18px;">No results yet — run a session to populate the leaderboard.</div>';
+    return;
+  }
+
+  // Podium (top 3), displayed 2nd–1st–3rd for the classic podium feel
+  const medals = ['🥇', '🥈', '🥉'];
+  const cls = ['first', 'second', 'third'];
+  if (podium) {
+    const top = board.slice(0, 3);
+    const disp = [top[1], top[0], top[2]].filter(Boolean);
+    podium.innerHTML = disp.map((s) => {
+      const i = s.rank - 1;
+      return `<div class="lb-podium-card ${cls[i] || ''}">
+        <div class="lb-podium-medal">${medals[i] || '🏅'}</div>
+        <div class="lb-podium-name">${A.esc(s.studentName)}</div>
+        <div class="lb-podium-score">${s.bestScore}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Full ranked list with score bars
+  list.innerHTML = board.map((s) => {
+    const rc = s.rank === 1 ? 'gold' : s.rank === 2 ? 'silver' : s.rank === 3 ? 'bronze' : '';
+    return `<div class="lb-row">
+      <div class="lb-rank ${rc}">${s.rank}</div>
+      <div class="lb-main">
+        <div class="lb-name">${A.esc(s.studentName)}</div>
+        <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${Math.max(0, Math.min(100, s.bestScore))}%"></div></div>
+      </div>
+      <div class="lb-score">${s.bestScore}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTeacherIndividualResults() {
+  const A = window.RSBAnalytics;
+  if (!A) return;
+  const rows = A.individualRows(teacherResultsCache, getTeacherFilters());
+  const tbody = document.getElementById('results-tbody');
+  const footer = document.getElementById('results-footer');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    if (footer) footer.textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map((r) => {
+    const errClass = r.errors >= 3 ? ' class="td-err-high"' : '';
+    return `<tr>
+      <td>${A.esc(r.studentName)}</td>
+      <td>${r.bestScore}</td>
+      <td class="td-time">${A.formatTime(r.best.completionTime)}</td>
+      <td>${r.attempts}</td>
+      <td class="td-stage">${A.esc(r.stage)}</td>
+      <td class="td-essentials">${r.essentials}/${r.essentialsMax}</td>
+      <td${errClass}>${r.errors}</td>
+    </tr>`;
+  }).join('');
+  if (footer) footer.textContent = `SHOWING ${rows.length} OF ${rows.length} STUDENTS`;
+}
+
+function setTeacherText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 
 // ---- CSV EXPORT HELPERS ----
 function downloadCsv(filename, csv) {
