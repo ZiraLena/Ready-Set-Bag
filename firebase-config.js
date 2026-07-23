@@ -50,63 +50,24 @@ window.firebaseInitPromise = new Promise((resolve) => {
         window.auth = firebase.auth();
 
         // Point at local emulators when served from the Firebase Hosting emulator,
-        // UNLESS ?firebase=prod-readonly is explicitly passed in the URL.
+        // UNLESS ?firebase=prod is explicitly passed in the URL.
         const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         const params = new URLSearchParams(window.location.search);
-        if (params.get('firebase') === 'prod-readonly') {
-          sessionStorage.setItem('firebaseMode', 'prod-readonly');
+        if (params.get('firebase') === 'prod') {
+          sessionStorage.setItem('firebaseMode', 'prod');
         } else if (params.get('firebase') === 'emulator') {
           sessionStorage.removeItem('firebaseMode');
         }
         // Persisted via sessionStorage so the mode survives page navigation
         // (e.g. login.js redirecting to admin/dashboard.html without the query string).
-        const wantsProdReadOnly = sessionStorage.getItem('firebaseMode') === 'prod-readonly';
+        const wantsProd = sessionStorage.getItem('firebaseMode') === 'prod';
 
-        if (isLocal && !wantsProdReadOnly) {
+        if (isLocal && !wantsProd) {
           window.db.useEmulator('localhost', 8081);
           window.auth.useEmulator('http://localhost:9099');
           console.log('Connected to Firebase EMULATORS (Firestore :8081, Auth :9099)');
-        } else if (isLocal && wantsProdReadOnly) {
-          // Hard-block all write operations client-side so this really is read-only,
-          // even though we're pointed at the real production database.
-          const blockWrite = (label) => () => {
-            const msg = `Blocked: "${label}" is disabled in prod-readonly mode.`;
-            console.error(msg);
-            return Promise.reject(new Error(msg));
-          };
-          const origCollection = window.db.collection.bind(window.db);
-          window.db.collection = function (...args) {
-            const ref = origCollection(...args);
-            ref.add = blockWrite('collection.add');
-            const origDoc = ref.doc.bind(ref);
-            ref.doc = function (...docArgs) {
-              const docRef = origDoc(...docArgs);
-              docRef.set = blockWrite('doc.set');
-              docRef.update = blockWrite('doc.update');
-              docRef.delete = blockWrite('doc.delete');
-              return docRef;
-            };
-            return ref;
-          };
-          window.db.batch = blockWrite('batch');
-
-          // Block account creation outright...
-          window.auth.createUserWithEmailAndPassword = blockWrite('auth.createUserWithEmailAndPassword');
-
-          // ...and patch whatever user object signInWithEmailAndPassword resolves with,
-          // so admin login still works but the logged-in user can't self-mutate/delete.
-          const origSignIn = window.auth.signInWithEmailAndPassword.bind(window.auth);
-          window.auth.signInWithEmailAndPassword = function (...signInArgs) {
-            return origSignIn(...signInArgs).then((cred) => {
-              if (cred && cred.user) {
-                cred.user.updatePassword = blockWrite('user.updatePassword');
-                cred.user.delete = blockWrite('user.delete');
-              }
-              return cred;
-            });
-          };
-
-          console.warn('Connected to PRODUCTION Firebase in READ-ONLY mode (all writes blocked client-side).');
+        } else if (isLocal && wantsProd) {
+          console.log('Connected to PRODUCTION Firebase (full read/write).');
         }
 
         // Try to enable IndexedDB persistence so clients reuse cached data
