@@ -13,6 +13,7 @@ scripts/serviceAccountKey.json
 
 # Local dev seed artifacts (contain real roster data — do NOT commit)
 scripts/_roster_export.json
+scripts/_backup_*.json
 firestore-debug.log
 ui-debug.log
 firebase-debug.log

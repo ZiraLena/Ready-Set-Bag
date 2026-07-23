@@ -730,7 +730,10 @@ function showAdminOfflineFallback() {
 
 let adminStudentsListener = null;
 let adminStudentsLastDoc = null;
-let adminStudentsPageSize = 15;
+// Large enough to fetch the whole roster in a single query at this app's scale,
+// so sections that sort late alphabetically (e.g. Roses, Tulips) aren't cut off
+// until "Load more" is clicked.
+let adminStudentsPageSize = 300;
 let adminStudentsHasMore = true;
 let adminStudentsShowAllLoaded = false;
 let adminStudentPaginationControls = null;
